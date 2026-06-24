@@ -45,7 +45,12 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
   double _pwv = 8.2;
   String _flowStatus = 'Optimal';
   bool _isStreaming = true;
+  int _batteryLevel = 84; 
   Timer? _dataTimer;
+
+  // Settings states
+  bool _notificationsEnabled = true;
+  bool _metricUnits = true;
 
   @override
   void initState() {
@@ -65,10 +70,15 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
       if (!_isStreaming) return;
       final random = Random();
       setState(() {
-        _heartRate = 68 + random.nextInt(10); // 68 to 77 bpm
-        _spo2 = random.nextInt(100) > 90 ? 97 : 98; // stable SpO2
-        _pwv = double.parse((7.9 + random.nextDouble() * 0.6).toStringAsFixed(1)); // 7.9 to 8.5 m/s
+        _heartRate = 68 + random.nextInt(10); 
+        _spo2 = random.nextInt(100) > 90 ? 97 : 98; 
+        _pwv = double.parse((7.9 + random.nextDouble() * 0.6).toStringAsFixed(1)); 
         _flowStatus = _pwv > 10.0 ? 'Abnormal' : 'Optimal';
+        
+        // Simulate slow battery drain
+        if (random.nextInt(100) > 95 && _batteryLevel > 0) {
+          _batteryLevel -= 1;
+        }
       });
     });
   }
@@ -87,11 +97,11 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
 
   @override
   Widget build(BuildContext context) {
-    // List of screens connected via the bottom navigation bar
     final List<Widget> screens = [
       _buildDashboardView(),
       _buildTrendsView(),
       _buildProfileView(),
+      _buildSettingsView(),
     ];
 
     return Scaffold(
@@ -109,6 +119,26 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
           ],
         ),
         actions: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(
+                '$_batteryLevel%',
+                style: TextStyle(
+                  color: _batteryLevel > 20 ? Colors.green : Colors.red,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              _batteryLevel > 20 ? Icons.battery_charging_full : Icons.battery_alert,
+              color: _batteryLevel > 20 ? Colors.green : Colors.red,
+            ),
+            tooltip: 'Battery Level',
+            onPressed: () {},
+          ),
           IconButton(
             icon: Icon(
               _isStreaming ? Icons.bluetooth_connected : Icons.bluetooth_disabled, 
@@ -117,11 +147,6 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
             tooltip: _isStreaming ? 'BLE Streaming Connected' : 'BLE Stream Paused',
             onPressed: _toggleStreaming,
           ),
-          IconButton(
-            icon: const Icon(Icons.notifications_active_outlined, color: Colors.black87),
-            tooltip: 'Alerts',
-            onPressed: () => _showAlertsDialog(context),
-          ),
         ],
       ),
       body: IndexedStack(
@@ -129,6 +154,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
         children: screens,
       ),
       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blueAccent,
         unselectedItemColor: Colors.grey,
         backgroundColor: Colors.white,
@@ -142,7 +168,8 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.auto_graph), label: 'Trends'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Device & Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
     );
@@ -177,7 +204,6 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
             ],
           ),
           const SizedBox(height: 16),
-          
           GridView.count(
             crossAxisCount: 2,
             crossAxisSpacing: 16,
@@ -187,11 +213,10 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
             children: [
               _buildVitalCard('Heart Rate', '$_heartRate', ' bpm', Icons.monitor_heart, Colors.redAccent),
               _buildVitalCard('Blood Oxygen', '$_spo2', ' %', Icons.air, Colors.lightBlue),
-              _buildVitalCard('Pulse Wave Vel.', '$_pwv', ' m/s', Icons.waves, Colors.deepPurple),
+              _buildVitalCard('Pulse Wave Vel.', '$_pwv', _metricUnits ? ' m/s' : ' ft/s', Icons.waves, Colors.deepPurple),
               _buildVitalCard('Vascular Tone', _flowStatus, '', Icons.water_drop, Colors.teal),
             ],
           ),
-          
           const SizedBox(height: 24),
           const Text(
             'AI Vascular Analysis',
@@ -200,7 +225,6 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
           const SizedBox(height: 12),
           _buildAIAnalysisCard(),
           const SizedBox(height: 24),
-          
           SizedBox(
             width: double.infinity,
             height: 56,
@@ -221,7 +245,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
     );
   }
 
-  // --- VIEW 2: TRENDS VIEW (NEW FEATURE) ---
+  // --- VIEW 2: TRENDS VIEW ---
   Widget _buildTrendsView() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -237,9 +261,12 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
             'Tracking Pulse Wave Velocity (PWV) variations across wrist and limb sites over time.',
             style: TextStyle(color: Colors.black54, fontSize: 14),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           
-          // Simulated Graphical Breakdown
+          // Visual Chart Component
+          _buildVisualChart(),
+          
+          const SizedBox(height: 24),
           _buildTrendAnalyticsRow('PWV Average (7 days)', '8.1 m/s', Colors.deepPurple, Icons.trending_flat),
           _buildTrendAnalyticsRow('Estimated ABI Value', '1.05 (Normal)', Colors.green, Icons.check_circle_outline),
           
@@ -255,7 +282,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
     );
   }
 
-  // --- VIEW 3: PROFILE & HARDWARE STATUS VIEW (NEW FEATURE) ---
+  // --- VIEW 3: PROFILE VIEW ---
   Widget _buildProfileView() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -281,10 +308,64 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
           const SizedBox(height: 12),
           _buildHardwareInfoTile('Main Controller', 'ESP32 Microcontroller', Icons.developer_board),
           _buildHardwareInfoTile('Biosensors Connected', 'Dual MAX30102 PPG Array (Wrist/Ankle)', Icons.sensors),
-          _buildHardwareInfoTile('Battery Charge Status', '84% (TP4056 Charge Controller)', Icons.battery_charging_full),
+          _buildHardwareInfoTile('Battery Charge Status', '$_batteryLevel% (TP4056 Charge Controller)', Icons.battery_charging_full),
           _buildHardwareInfoTile('Cloud Data Synchronization', 'Active (Secure Cloud Storage)', Icons.cloud_done),
         ],
       ),
+    );
+  }
+
+  // --- VIEW 4: SETTINGS VIEW (NEW) ---
+  Widget _buildSettingsView() {
+    return ListView(
+      padding: const EdgeInsets.all(16.0),
+      children: [
+        const Text('Application Preferences', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+        const SizedBox(height: 16),
+        SwitchListTile(
+          title: const Text('Push Notifications'),
+          subtitle: const Text('Alerts for abnormal vascular parameters'),
+          secondary: const Icon(Icons.notifications_active, color: Colors.blueAccent),
+          value: _notificationsEnabled,
+          onChanged: (bool value) {
+            setState(() {
+              _notificationsEnabled = value;
+            });
+          },
+        ),
+        SwitchListTile(
+          title: const Text('Metric Units'),
+          subtitle: const Text('Toggle between m/s and ft/s for PWV'),
+          secondary: const Icon(Icons.straighten, color: Colors.blueAccent),
+          value: _metricUnits,
+          onChanged: (bool value) {
+            setState(() {
+              _metricUnits = value;
+            });
+          },
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.download, color: Colors.blueAccent),
+          title: const Text('Export Data (CSV)'),
+          subtitle: const Text('Download your raw PPG and vitals history'),
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Preparing CSV export...')),
+            );
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.bluetooth_searching, color: Colors.blueAccent),
+          title: const Text('Pair New Smart Band'),
+          subtitle: const Text('Scan for nearby CirculSense devices'),
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Scanning for BLE devices...')),
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -400,6 +481,54 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
     );
   }
 
+  Widget _buildVisualChart() {
+    // Simulated past 7 days data points scaled for a simple bar UI
+    final List<double> pastWeekData = [8.0, 7.9, 8.2, 8.4, 8.1, 7.8, _pwv]; 
+    final List<String> days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      height: 200,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('7-Day PWV Spread', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Spacer(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: List.generate(pastWeekData.length, (index) {
+              // Normalize the bar height visually for 7.0 - 10.0 range
+              double normalizedHeight = ((pastWeekData[index] - 7.0) / 3.0) * 100;
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    width: 24,
+                    height: normalizedHeight.clamp(10.0, 100.0), // ensure min/max bounds visually
+                    decoration: BoxDecoration(
+                      color: pastWeekData[index] > 8.3 ? Colors.orangeAccent : Colors.deepPurple,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(days[index], style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildHistoryLogTile(String time, String data, IconData icon, Color iconColor) {
     return Card(
       color: Colors.white,
@@ -452,28 +581,6 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
             },
             child: const Text('Send Report'),
           ),
-        ],
-      ),
-    );
-  }
-
-  void _showAlertsDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Real-Time Health Alerts'),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.check_circle, color: Colors.green),
-              title: Text('No Anomalies Found'),
-              subtitle: Text('Continuous monitoring system running smoothly.'),
-            )
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Dismiss')),
         ],
       ),
     );
