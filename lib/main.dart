@@ -68,7 +68,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> with 
   // Simulates streaming data from the Wrist and Foot PPG Sensors via BLE
   void _startLiveSensorSimulation() {
     _dataTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
-      if (!_isStreaming) return;
+      if (!_isStreaming) return; // Retains old data when not streaming
       final random = Random();
       setState(() {
         _heartRate = 68 + random.nextInt(12); 
@@ -91,7 +91,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> with 
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xFF2B5876),
-        content: Text(_isStreaming ? 'Resumed live device stream' : 'Paused live device stream'),
+        content: Text(_isStreaming ? 'Resumed live device stream' : 'Paused live device stream (Showing last recorded data)'),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -266,50 +266,51 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> with 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // WOW FEATURE: Live Monitor Display
-          Container(
-            width: double.infinity,
-            height: 140,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF2B5876), Color(0xFF4E4376)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(color: const Color(0xFF2B5876).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('LIVE PPG SENSOR', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                    if (_isStreaming)
-                      const Row(
-                        children: [
-                          Icon(Icons.circle, color: Colors.greenAccent, size: 10),
-                          SizedBox(width: 4),
-                          Text('REC', style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                  ],
+          // Conditionally render the LIVE PPG SENSOR based on streaming status
+          if (_isStreaming) ...[
+            Container(
+              width: double.infinity,
+              height: 140,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2B5876), Color(0xFF4E4376)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                const SizedBox(height: 10),
-                // Custom Animated Waveform Widget
-                const Expanded(child: LiveWaveform()),
-              ],
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(color: const Color(0xFF2B5876).withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('LIVE PPG SENSOR', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                      if (_isStreaming)
+                        const Row(
+                          children: [
+                            Icon(Icons.circle, color: Colors.greenAccent, size: 10),
+                            SizedBox(width: 4),
+                            Text('REC', style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Expanded(child: LiveWaveform()),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
+            const SizedBox(height: 24),
+          ],
           
-          const Text(
-            'Primary Vitals',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
+          Text(
+            _isStreaming ? 'Primary Vitals' : 'Last Recorded Vitals',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1E293B)),
           ),
           const SizedBox(height: 16),
           
@@ -416,7 +417,6 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> with 
 
   // --- WIDGET BUILD COMPONENT UTILITIES ---
 
-  // WOW FEATURE: Modern Neumorphic/Gradient Card
   Widget _buildModernVitalCard(String title, String value, String unit, IconData icon, Color accentColor, {bool isGlowing = false}) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -627,26 +627,20 @@ class WaveformPainter extends CustomPainter {
     final double height = size.height;
     final double midY = height / 2;
 
-    // Simulate an ECG-like wave moving across the screen
     for (double x = 0; x < width; x++) {
-      // Calculate shifted X to create movement
       double shiftedX = (x + (animationValue * width)) % width;
-      
-      // Build a synthetic waveform shape
       double y = midY;
       
-      // Simulate heartbeats at specific intervals
       if (shiftedX % 100 < 10) {
-        y -= 5; // P wave
+        y -= 5; 
       } else if (shiftedX % 100 > 15 && shiftedX % 100 < 25) {
-        y -= 30 * sin((shiftedX % 100 - 15) * pi / 10); // QRS complex upward
+        y -= 30 * sin((shiftedX % 100 - 15) * pi / 10); 
       } else if (shiftedX % 100 > 25 && shiftedX % 100 < 35) {
-        y += 15 * sin((shiftedX % 100 - 25) * pi / 10); // QRS complex downward
+        y += 15 * sin((shiftedX % 100 - 25) * pi / 10); 
       } else if (shiftedX % 100 > 50 && shiftedX % 100 < 70) {
-        y -= 10 * sin((shiftedX % 100 - 50) * pi / 20); // T wave
+        y -= 10 * sin((shiftedX % 100 - 50) * pi / 20); 
       }
 
-      // Add a tiny bit of noise to look like a real raw signal
       y += (sin(x * 0.5) * 1.5); 
 
       if (x == 0) {
@@ -658,7 +652,6 @@ class WaveformPainter extends CustomPainter {
 
     canvas.drawPath(path, paint);
     
-    // Draw a fading gradient over the left side to simulate standard medical monitors clearing the screen
     final rect = Rect.fromLTWH(0, 0, width, height);
     final gradient = LinearGradient(
       colors: [const Color(0xFF2B5876), const Color(0xFF2B5876).withOpacity(0.0)],
