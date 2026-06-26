@@ -511,6 +511,33 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
             Colors.green,
             Icons.check_circle_outline,
           ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: double.infinity,
+            height: 55,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.picture_as_pdf),
+              label: const Text(
+                'Export 7-Day Clinical Report', 
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF2B5876),
+                side: const BorderSide(color: Color(0xFF2B5876), width: 2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Generating PDF report...'),
+                    backgroundColor: Color(0xFF4E4376),
+                  ),
+                );
+              },
+            ),
+          ),
         ],
       ),
     );
