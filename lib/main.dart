@@ -112,7 +112,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
             children: [
               ListTile(
                 leading: const Icon(Icons.bluetooth, color: Color(0xFF2B5876)),
-                title: const Text('ESP32_CirculSense'),
+                title: const Text('ESP32_WearFit'),
                 subtitle: const Text('Signal: -45 dBm'),
                 trailing: ElevatedButton(
                   onPressed: () {
@@ -189,7 +189,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
                   ),
                   const SizedBox(width: 16),
                   const Text(
-                    'CirculSense AI',
+                    'WearFit AI',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -250,7 +250,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
             ),
             const SizedBox(width: 8),
             const Text(
-              'CirculSense',
+              'WearFit',
               style: TextStyle(
                 color: Color(0xFF2B5876),
                 fontWeight: FontWeight.w900,
