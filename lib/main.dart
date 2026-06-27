@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 void main() {
   runApp(const SmartBandApp());
@@ -87,7 +88,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
     });
   }
 
-    void _toggleStreaming() {
+  void _toggleStreaming() {
     setState(() {
       _isStreaming = !_isStreaming;
     });
@@ -95,7 +96,11 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
       SnackBar(
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xFF2B5876),
-        content: Text(_isStreaming ? 'Resumed live device stream' : 'Paused live device stream (Showing last recorded data)'),
+        content: Text(
+          _isStreaming
+              ? 'Resumed live device stream'
+              : 'Paused live device stream (Showing last recorded data)',
+        ),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -518,8 +523,8 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
             child: OutlinedButton.icon(
               icon: const Icon(Icons.picture_as_pdf),
               label: const Text(
-                'Export 7-Day Clinical Report', 
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)
+                'Export 7-Day Clinical Report',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFF2B5876),
@@ -776,79 +781,72 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
 
   Widget _buildVisualChart() {
     final List<double> pastWeekData = [8.0, 7.9, 8.2, 8.8, 8.1, 7.8, _pwv];
-    final List<String> days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
     return Container(
       padding: const EdgeInsets.all(20),
-      height: 220,
+      height: 250, // Increased height for better visibility
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'PWV Distribution',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-              ),
-              Icon(Icons.bar_chart, color: Colors.grey),
-            ],
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: 12, // Set based on expected PWV ranges
+          gridData: FlGridData(
+            show: true,
+            drawHorizontalLine: true,
+            horizontalInterval: 2,
+            getDrawingHorizontalLine:
+                (value) =>
+                    FlLine(color: Colors.grey.withOpacity(0.1), strokeWidth: 1),
           ),
-          const Spacer(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: List.generate(pastWeekData.length, (index) {
-              double normalizedHeight =
-                  ((pastWeekData[index] - 7.0) / 3.0) * 120;
-              bool isHigh = pastWeekData[index] > 8.5;
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 500),
-                    width: 20,
-                    height: normalizedHeight.clamp(10.0, 120.0),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors:
-                            isHigh
-                                ? [Colors.orange, Colors.redAccent]
-                                : [
-                                  Colors.lightBlueAccent,
-                                  const Color(0xFF2B5876),
-                                ],
-                        begin: Alignment.bottomCenter,
-                        end: Alignment.topCenter,
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget:
+                    (value, meta) => Text(
+                      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][value
+                          .toInt()],
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
                       ),
-                      borderRadius: BorderRadius.circular(6),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    days[index],
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.black54,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              );
-            }),
+              ),
+            ),
+            leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
           ),
-        ],
+          borderData: FlBorderData(show: false),
+          barGroups: List.generate(pastWeekData.length, (i) {
+            final isHigh = pastWeekData[i] > 9.5;
+            return BarChartGroupData(
+              x: i,
+              barRods: [
+                BarChartRodData(
+                  toY: pastWeekData[i],
+                  width: 16,
+                  borderRadius: BorderRadius.circular(4),
+                  gradient: LinearGradient(
+                    colors:
+                        isHigh
+                            ? [Colors.orange, Colors.red]
+                            : [Colors.blue.shade200, Colors.blue.shade900],
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                  ),
+                ),
+              ],
+            );
+          }),
+        ),
       ),
     );
   }
