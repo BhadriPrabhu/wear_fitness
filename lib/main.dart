@@ -555,54 +555,59 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
 
   // --- VIEW 3 (NEW): VASCULAR COHERENCE THERAPY ---
   Widget _buildBreathingView() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            'Coherence Training',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF1E293B),
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Coherence Training',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFF1E293B),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Sync your breath with the visualizer to lower vascular stiffness and optimize blood flow.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 15, color: Colors.black54, height: 1.4),
-          ),
-          const SizedBox(height: 60),
-          
-          // The Interactive Breathing Orb
-          const CoherenceOrb(),
-          
-          const SizedBox(height: 60),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _buildModernVitalCard(
-                'Live HR',
-                '$_heartRate',
-                'bpm',
-                Icons.favorite,
-                Colors.redAccent,
-                isGlowing: false,
+            const SizedBox(height: 8),
+            const Text(
+              'Sync your breath with the visualizer to lower vascular stiffness and optimize blood flow.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.black54,
+                height: 1.4,
               ),
-              _buildModernVitalCard(
-                'Current PWV',
-                '$_pwv',
-                'm/s',
-                Icons.speed,
-                Colors.deepPurple,
-                isGlowing: false,
-              ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: 40),
+
+            // The Interactive Breathing Orb
+            const CoherenceOrb(),
+
+            const SizedBox(height: 40),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildModernVitalCard(
+                  'Live HR',
+                  '$_heartRate',
+                  'bpm',
+                  Icons.favorite,
+                  Colors.redAccent,
+                  isGlowing: false,
+                ),
+                _buildModernVitalCard(
+                  'Current PWV',
+                  '$_pwv',
+                  'm/s',
+                  Icons.speed,
+                  Colors.deepPurple,
+                  isGlowing: false,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1065,7 +1070,8 @@ class CoherenceOrb extends StatefulWidget {
   State<CoherenceOrb> createState() => _CoherenceOrbState();
 }
 
-class _CoherenceOrbState extends State<CoherenceOrb> with SingleTickerProviderStateMixin {
+class _CoherenceOrbState extends State<CoherenceOrb>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _opacityAnimation;
@@ -1076,16 +1082,17 @@ class _CoherenceOrbState extends State<CoherenceOrb> with SingleTickerProviderSt
     // 10 second full cycle: 5s inhale, 5s exhale
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 5), 
+      duration: const Duration(seconds: 5),
     )..repeat(reverse: true);
 
     _scaleAnimation = Tween<double>(begin: 0.6, end: 1.4).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
     );
 
-    _opacityAnimation = Tween<double>(begin: 0.3, end: 0.8).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _opacityAnimation = Tween<double>(
+      begin: 0.3,
+      end: 0.8,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1099,9 +1106,8 @@ class _CoherenceOrbState extends State<CoherenceOrb> with SingleTickerProviderSt
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        String breathText = _controller.status == AnimationStatus.forward 
-            ? "Inhale" 
-            : "Exhale";
+        String breathText =
+            _controller.status == AnimationStatus.forward ? "Inhale" : "Exhale";
 
         return Stack(
           alignment: Alignment.center,
@@ -1114,7 +1120,9 @@ class _CoherenceOrbState extends State<CoherenceOrb> with SingleTickerProviderSt
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(0xFF4E4376).withOpacity(_opacityAnimation.value),
+                    const Color(
+                      0xFF4E4376,
+                    ).withOpacity(_opacityAnimation.value),
                     const Color(0xFF2B5876).withOpacity(0.0),
                   ],
                 ),
