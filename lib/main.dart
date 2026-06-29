@@ -1108,6 +1108,7 @@ class _CoherenceOrbState extends State<CoherenceOrb>
       builder: (context, child) {
         String breathText =
             _controller.status == AnimationStatus.forward ? "Inhale" : "Exhale";
+        double smoothFontSize = 16.0 * _scaleAnimation.value;
 
         return Stack(
           alignment: Alignment.center,
@@ -1150,10 +1151,10 @@ class _CoherenceOrbState extends State<CoherenceOrb>
               child: Center(
                 child: Text(
                   breathText,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
-                    fontSize: 20,
+                    fontSize: smoothFontSize,
                     letterSpacing: 2,
                   ),
                 ),
