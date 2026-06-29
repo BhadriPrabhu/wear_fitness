@@ -239,6 +239,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
     final List<Widget> screens = [
       _buildDashboardView(),
       _buildTrendsView(),
+      _buildBreathingView(),
       _buildProfileView(),
       _buildSettingsView(),
     ];
@@ -337,6 +338,10 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
               BottomNavigationBarItem(
                 icon: Icon(Icons.insights_rounded),
                 label: 'Trends',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.air_rounded),
+                label: 'Therapy',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person_rounded),
@@ -542,6 +547,60 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- VIEW 3 (NEW): VASCULAR COHERENCE THERAPY ---
+  Widget _buildBreathingView() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'Coherence Training',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Sync your breath with the visualizer to lower vascular stiffness and optimize blood flow.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 15, color: Colors.black54, height: 1.4),
+          ),
+          const SizedBox(height: 60),
+          
+          // The Interactive Breathing Orb
+          const CoherenceOrb(),
+          
+          const SizedBox(height: 60),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildModernVitalCard(
+                'Live HR',
+                '$_heartRate',
+                'bpm',
+                Icons.favorite,
+                Colors.redAccent,
+                isGlowing: false,
+              ),
+              _buildModernVitalCard(
+                'Current PWV',
+                '$_pwv',
+                'm/s',
+                Icons.speed,
+                Colors.deepPurple,
+                isGlowing: false,
+              ),
+            ],
           ),
         ],
       ),
@@ -994,4 +1053,107 @@ class WaveformPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// =====================================================================
+// WOW FEATURE 2: VASCULAR COHERENCE BREATHING ORB
+// =====================================================================
+class CoherenceOrb extends StatefulWidget {
+  const CoherenceOrb({super.key});
+
+  @override
+  State<CoherenceOrb> createState() => _CoherenceOrbState();
+}
+
+class _CoherenceOrbState extends State<CoherenceOrb> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _opacityAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    // 10 second full cycle: 5s inhale, 5s exhale
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5), 
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(begin: 0.6, end: 1.4).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.3, end: 0.8).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        String breathText = _controller.status == AnimationStatus.forward 
+            ? "Inhale" 
+            : "Exhale";
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Outer Glowing Halo
+            Container(
+              width: 200 * _scaleAnimation.value,
+              height: 200 * _scaleAnimation.value,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF4E4376).withOpacity(_opacityAnimation.value),
+                    const Color(0xFF2B5876).withOpacity(0.0),
+                  ],
+                ),
+              ),
+            ),
+            // Inner Solid Core
+            Container(
+              width: 120 * (_scaleAnimation.value * 0.8),
+              height: 120 * (_scaleAnimation.value * 0.8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF2B5876), Color(0xFF4E4376)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF2B5876).withOpacity(0.5),
+                    blurRadius: 30,
+                    spreadRadius: 5 * _scaleAnimation.value,
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  breathText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
