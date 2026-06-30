@@ -56,6 +56,10 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
   bool _notificationsEnabled = true;
   bool _metricUnits = true;
 
+  int _therapyRemainingSeconds = 300; // 5 minutes
+  bool _isTherapyActive = false;
+  Timer? _therapyTimer;
+
   @override
   void initState() {
     super.initState();
@@ -65,7 +69,41 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
   @override
   void dispose() {
     _dataTimer?.cancel();
+    _therapyTimer?.cancel();
     super.dispose();
+  }
+
+  void _toggleTherapySession() {
+    if (_isTherapyActive) {
+      // Stop Session
+      _therapyTimer?.cancel();
+      setState(() {
+        _isTherapyActive = false;
+        _therapyRemainingSeconds = 300; // Reset timer back to 5 mins
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session Ended. Great job!'),
+          backgroundColor: Color(0xFF2B5876),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      // Start Session
+      setState(() {
+        _isTherapyActive = true;
+        _therapyRemainingSeconds = 300;
+      });
+      _therapyTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        setState(() {
+          if (_therapyRemainingSeconds > 0) {
+            _therapyRemainingSeconds--;
+          } else {
+            _toggleTherapySession(); // Auto-stop when it hits 0:00
+          }
+        });
+      });
+    }
   }
 
   // Simulates streaming data from the Wrist and Foot PPG Sensors via BLE
@@ -553,59 +591,156 @@ class _MainNavigationContainerState extends State<MainNavigationContainer>
     );
   }
 
-  // --- VIEW 3 (NEW): VASCULAR COHERENCE THERAPY ---
+  // --- VIEW 3 (ENHANCED): VASCULAR COHERENCE THERAPY ---
   Widget _buildBreathingView() {
+    // Format seconds into MM:SS
+    String formattedTime =
+        '${(_therapyRemainingSeconds ~/ 60).toString().padLeft(2, '0')}:${(_therapyRemainingSeconds % 60).toString().padLeft(2, '0')}';
+
     return Center(
       child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // DYNAMIC BADGE
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color:
+                    _isTherapyActive
+                        ? Colors.redAccent.withOpacity(0.1)
+                        : const Color(0xFF2B5876).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _isTherapyActive ? Icons.timer : Icons.timer_outlined,
+                    size: 18,
+                    color:
+                        _isTherapyActive
+                            ? Colors.redAccent
+                            : const Color(0xFF2B5876),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    _isTherapyActive
+                        ? '$formattedTime REMAINING'
+                        : '5 MIN SESSION',
+                    style: TextStyle(
+                      color:
+                          _isTherapyActive
+                              ? Colors.redAccent
+                              : const Color(0xFF2B5876),
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
             const Text(
               'Coherence Training',
               style: TextStyle(
-                fontSize: 28,
+                fontSize: 32,
                 fontWeight: FontWeight.w900,
                 color: Color(0xFF1E293B),
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 8),
-            const Text(
-              'Sync your breath with the visualizer to lower vascular stiffness and optimize blood flow.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.black54,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 40),
-
-            // The Interactive Breathing Orb
-            const CoherenceOrb(),
-
-            const SizedBox(height: 40),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildModernVitalCard(
-                  'Live HR',
-                  '$_heartRate',
-                  'bpm',
-                  Icons.favorite,
-                  Colors.redAccent,
-                  isGlowing: false,
+            const SizedBox(height: 12),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text(
+                'Sync your breath with the visualizer to lower vascular stiffness and optimize blood flow.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.black54,
+                  height: 1.5,
                 ),
-                _buildModernVitalCard(
-                  'Current PWV',
-                  '$_pwv',
-                  'm/s',
-                  Icons.speed,
-                  Colors.deepPurple,
-                  isGlowing: false,
+              ),
+            ),
+            const SizedBox(height: 50),
+
+            // PASS STATE TO ORB
+            CoherenceOrb(isActive: _isTherapyActive),
+
+            const SizedBox(height: 50),
+
+            Row(
+              children: [
+                Expanded(
+                  child: _buildModernVitalCard(
+                    'Live HR',
+                    '$_heartRate',
+                    'bpm',
+                    Icons.favorite,
+                    Colors.redAccent,
+                    isGlowing: false,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildModernVitalCard(
+                    'Current PWV',
+                    '$_pwv',
+                    'm/s',
+                    Icons.speed,
+                    Colors.deepPurple,
+                    isGlowing: false,
+                  ),
                 ),
               ],
             ),
+
+            const SizedBox(height: 32),
+
+            // DYNAMIC BUTTON
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: _toggleTherapySession,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      _isTherapyActive ? Colors.white : const Color(0xFF2B5876),
+                  foregroundColor:
+                      _isTherapyActive ? Colors.redAccent : Colors.white,
+                  elevation: 8,
+                  shadowColor:
+                      _isTherapyActive
+                          ? Colors.redAccent.withOpacity(0.2)
+                          : const Color(0xFF2B5876).withOpacity(0.4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    side: BorderSide(
+                      color:
+                          _isTherapyActive
+                              ? Colors.redAccent
+                              : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  _isTherapyActive ? 'End Session' : 'Start Session',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -1064,7 +1199,9 @@ class WaveformPainter extends CustomPainter {
 // WOW FEATURE 2: VASCULAR COHERENCE BREATHING ORB
 // =====================================================================
 class CoherenceOrb extends StatefulWidget {
-  const CoherenceOrb({super.key});
+  final bool isActive; // NEW: Receives state from parent
+
+  const CoherenceOrb({super.key, required this.isActive});
 
   @override
   State<CoherenceOrb> createState() => _CoherenceOrbState();
@@ -1079,11 +1216,10 @@ class _CoherenceOrbState extends State<CoherenceOrb>
   @override
   void initState() {
     super.initState();
-    // 10 second full cycle: 5s inhale, 5s exhale
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 5),
-    )..repeat(reverse: true);
+    ); // Removed the automatic ..repeat()
 
     _scaleAnimation = Tween<double>(begin: 0.6, end: 1.4).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
@@ -1093,6 +1229,25 @@ class _CoherenceOrbState extends State<CoherenceOrb>
       begin: 0.3,
       end: 0.8,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    // Start immediately if it spawns in an active state
+    if (widget.isActive) {
+      _controller.repeat(reverse: true);
+    }
+  }
+
+  // NEW: Listens for the Start/End button press from the parent
+  @override
+  void didUpdateWidget(covariant CoherenceOrb oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive != oldWidget.isActive) {
+      if (widget.isActive) {
+        _controller.repeat(reverse: true); // Wake up & Breathe
+      } else {
+        // Smoothly return to the starting resting size (0.0)
+        _controller.animateBack(0.0, duration: const Duration(seconds: 1));
+      }
+    }
   }
 
   @override
@@ -1106,9 +1261,15 @@ class _CoherenceOrbState extends State<CoherenceOrb>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        String breathText =
-            _controller.status == AnimationStatus.forward ? "Inhale" : "Exhale";
-        double smoothFontSize = 16.0 * _scaleAnimation.value;
+        // Change text based on whether therapy is running
+        String breathText = "Resting";
+        if (widget.isActive) {
+          breathText = _controller.status == AnimationStatus.forward
+              ? "Inhale"
+              : "Exhale";
+        }
+
+        double smoothFontSize = 16.0 * (_scaleAnimation.value < 0.8 ? 0.8 : _scaleAnimation.value);
 
         return Stack(
           alignment: Alignment.center,
@@ -1121,9 +1282,7 @@ class _CoherenceOrbState extends State<CoherenceOrb>
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    const Color(
-                      0xFF4E4376,
-                    ).withOpacity(_opacityAnimation.value),
+                    const Color(0xFF4E4376).withOpacity(_opacityAnimation.value),
                     const Color(0xFF2B5876).withOpacity(0.0),
                   ],
                 ),
@@ -1135,14 +1294,18 @@ class _CoherenceOrbState extends State<CoherenceOrb>
               height: 120 * (_scaleAnimation.value * 0.8),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF2B5876), Color(0xFF4E4376)],
+                gradient: LinearGradient(
+                  colors: widget.isActive 
+                      ? const [Color(0xFF2B5876), Color(0xFF4E4376)]
+                      : [Colors.grey.shade400, Colors.grey.shade600], // Gray when off
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF2B5876).withOpacity(0.5),
+                    color: widget.isActive 
+                        ? const Color(0xFF2B5876).withOpacity(0.5)
+                        : Colors.transparent,
                     blurRadius: 30,
                     spreadRadius: 5 * _scaleAnimation.value,
                   ),
